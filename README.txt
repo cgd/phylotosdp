@@ -66,6 +66,8 @@ no header, and each strain gets its own line.
 The following shows how you might invoke this script when you are interested in
 subsetting the strains:
 
-/phylotosdp.py --phylo-intervals chr*maxk.csv --min-count-thresh 4 \
-               --unique-sdp-out unique-sdps.txt --sdp-interval-map-out sdp-map.csv
+./phylotosdp.py \
+    --all-strains strains.txt --subset-strains strain-subset.txt \
+    --phylo-intervals chr*maxk.csv --min-count-thresh 4 \
+    --unique-sdp-out unique-sdps.txt --sdp-interval-map-out sdp-map.csv
 
