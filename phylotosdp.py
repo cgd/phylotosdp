@@ -4,6 +4,7 @@ import argparse
 import csv
 import numbers
 import os
+import re
 
 def is_num_list(xs):
     for x in xs:
@@ -225,6 +226,17 @@ def main():
         required = True,
         dest = 'sdp_interval_map_out',
         help = 'the SDP interval map output file')
+    parser.add_argument(
+        '--chr-capture-regex',
+        required = False,
+        dest = 'chr_capture_regex',
+        help =
+            'this argument should be a regular expression that will be matched ' +
+            'against the name of each input phylogeny interval file. The first group in the match ' +
+            'will be used as the chromosome string in the interval map output. ' +
+            'It will be considered an error if any of the input phylogeny interval ' +
+            'file names does not match this expression. An example of a regex that you ' +
+            'could use for files named like "chr19maxk.csv" would be "chr(.+)maxk.csv"')
     
     args = parser.parse_args()
     
@@ -232,13 +244,28 @@ def main():
     if (args.all_strains is not None) and (args.subset_strains is not None):
         subset_strain_indices = get_subset_strain_indices(args.all_strains, args.subset_strains)
     
+    chr_capture_regex = None
+    if args.chr_capture_regex is not None:
+        chr_capture_regex = re.compile(args.chr_capture_regex)
+        if chr_capture_regex.groups != 1:
+            raise Exception('--chr-capture-regex option was expected to have exactly one capture group')
+    
     min_count = int(args.min_count_thresh)
     sdp_dict = dict()
     val_header = None
     for in_file in args.phylo_intervals:
+        chr_name = None
+        if chr_capture_regex is not None:
+            match = chr_capture_regex.match(os.path.basename(in_file))
+            if match:
+                chr_name = match.group(1)
+            else:
+                raise Exception('%s does not match %s' % (os.path.basename(in_file), args.chr_capture_regex))
+        
         with open(in_file, 'r') as open_in:
             csv_reader = csv.reader(open_in)
             val_header = csv_reader.next()
+            val_header.pop()
             leaf_count = -1
             for row in csv_reader:
                 tree = parse_phylo_tree(row[len(row) - 1])
@@ -252,14 +279,23 @@ def main():
                         vals = sdp_dict[sdp]
                     else:
                         sdp_dict[sdp] = vals
-                    vals.append([os.path.basename(in_file)] + row[0:len(row) - 2])
+                    data_rows = row[0 : len(row) - 1]
+                    if chr_capture_regex is not None:
+                        data_rows = [chr_name] + data_rows
+                    vals.append(data_rows)
     
     with open(args.unique_sdp_out, 'wb') as unique_sdp_out:
         with open(args.sdp_interval_map_out, 'wb') as sdp_interval_map_out:
             unique_sdp_writer = csv.writer(unique_sdp_out)
-            unique_sdp_writer.writerow(['sdp'])
+            row = ['sdp']
+            unique_sdp_writer.writerow(row)
+            
             sdp_map_writer = csv.writer(sdp_interval_map_out)
-            sdp_map_writer.writerow(['sdp'] + ['source'] + val_header)
+            if chr_capture_regex is not None:
+                row.append('chr')
+            row += val_header
+            sdp_map_writer.writerow(row)
+            
             for sdp, intervals in sdp_dict.iteritems():
                 sdp_str = sdp_to_str(sdp)
                 unique_sdp_writer.writerow([sdp_str])

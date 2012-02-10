@@ -6,6 +6,7 @@ usage: phylotosdp.py [-h] --min-count-thresh MIN_COUNT_THRESH
                      PHYLO_INTERVALS [PHYLO_INTERVALS ...] --unique-sdp-out
                      UNIQUE_SDP_OUT --sdp-interval-map-out
                      SDP_INTERVAL_MAP_OUT
+                     [--chr-capture-regex CHR_CAPTURE_REGEX]
 
 calculates SDPs for all possible phylogeny tree splits
 
@@ -29,6 +30,16 @@ optional arguments:
                         the unique SDP output file
   --sdp-interval-map-out SDP_INTERVAL_MAP_OUT
                         the SDP interval map output file
+  --chr-capture-regex CHR_CAPTURE_REGEX
+                        this argument should be a regular expression that will
+                        be matched against the name of each input phylogeny
+                        interval file. The first group in the match will be
+                        used as the chromosome string in the interval map
+                        output. It will be considered an error if any of the
+                        input phylogeny interval file names does not match
+                        this expression. An example of a regex that you could
+                        use for files named like "chr19maxk.csv" would be
+                        "chr(.+)maxk.csv"
 
 == PHYLOGENY INPUT FILES ==
 
