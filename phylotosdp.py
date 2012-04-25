@@ -6,17 +6,25 @@ import numbers
 import os
 import re
 
-def is_num_list(xs):
+def is_num_iter(xs):
+    """
+    Iterates over all values in the given list and determines if they are all
+    numeric
+    """
     for x in xs:
         if not isinstance(x, numbers.Number):
             return False
     return True
 
-def countLeaves(treeNode):
+def count_leaves(treeNode):
+    """
+    Takes the given tree node which is a recursive list structure and counts
+    the number of leaves
+    """
     if isinstance(treeNode, list):
         count = 0
         for subNode in treeNode:
-            count += countLeaves(subNode)
+            count += count_leaves(subNode)
         
         return count
     else:
@@ -25,25 +33,33 @@ def countLeaves(treeNode):
 def all_tree_sdps(tree, min_count, subset_strain_indices):
     sdps = set()
     
-    leaf_count = countLeaves(tree)
+    leaf_count = count_leaves(tree)
+    print 'leaf_count = %i' % leaf_count
     def maybe_add_sdp(indexes):
+        # start out with all given indexes set to true but the rest set to false
         sdp = [False] * leaf_count
         for i in indexes:
             sdp[i] = True
-        
+
+        # only keep strains found in the subset
         if subset_strain_indices is not None:
             sdp = [sdp[i] for i in subset_strain_indices]
         
-        num_trues = 0
+        min_allele_freq = 0
         for x in sdp:
             if x:
-                num_trues += 1
-        
-        if num_trues * 2 > len(sdp) or (num_trues * 2 == len(sdp) and not sdp[0]):
+                min_allele_freq += 1
+
+        # make sure that 1 will be used to represent the minor allele and in the
+        # case where there is an even split we will arbitrarily (but
+        # deterministically) force the first strain to be 1
+        if min_allele_freq * 2 > len(sdp) or (min_allele_freq * 2 == len(sdp) and not sdp[0]):
             sdp = [not x for x in sdp]
-            num_trues = len(sdp) - num_trues
-        
-        if num_trues >= min_count:
+            min_allele_freq = len(sdp) - min_allele_freq
+
+        # only keep this SDP if it passes the minimum threshold for the minor
+        # allele
+        if min_allele_freq >= min_count:
             sdps.add(tuple(sdp))
     
     def all_sdps_recursive(node):
@@ -64,7 +80,7 @@ def all_leaves(tree):
             leaves.append(n)
     return leaves
 
-def branchLength(tree_string):
+def branch_length(tree_string):
     if len(tree_string) == 0:
         raise Exception('tree_string is empty')
     
@@ -99,7 +115,7 @@ def parse_phylo_tree(tree_string):
         else:
             branches = []
             while len(tree_string) != 0:
-                brLen = branchLength(tree_string)
+                brLen = branch_length(tree_string)
                 br = tree_string[0:brLen].strip()
                 branches.append(br)
                 
@@ -129,12 +145,12 @@ def parse_phylo_tree(tree_string):
     return clean_phylo_tree(parse_phylo_tree_recursive(tree_string))
     
 def validate_tree(tree, leaf_count):
-    if countLeaves(tree) != leaf_count:
-        raise Exception('bad leaf count %i' % countLeaves(tree))
+    if count_leaves(tree) != leaf_count:
+        raise Exception('bad leaf count %i' % count_leaves(tree))
     
     indexSeen = [False] * leaf_count
     def validate_recursive(node):
-        if is_num_list(node):
+        if is_num_iter(node):
             for i in node:
                 if indexSeen[i]:
                     raise Exception('error: observed leaf value twice')
@@ -270,7 +286,7 @@ def main():
             for row in csv_reader:
                 tree = parse_phylo_tree(row[len(row) - 1])
                 if leaf_count == -1:
-                    leaf_count = countLeaves(tree)
+                    leaf_count = count_leaves(tree)
                 validate_tree(tree, leaf_count)
                 
                 for sdp in all_tree_sdps(tree, min_count, subset_strain_indices):

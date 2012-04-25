@@ -58,7 +58,7 @@ The phylogeny tree will be in the final column. Trees are represented by a
 recursive structure of parentheses which will contain either subgroups or a list
 of numbers separated by spaces. All tree splits are expected to be binary. Also
 note that tree splits can be followed by a number (0 in the example given
-above). This number is ignored for the purposes of constructing SDPs.
+above).
 
 These files are similar to newick but not exactly the same. In particular the
 zeros which follow groups of strain indices are ignored for the purposes of
